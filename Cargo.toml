@@ -1,0 +1,21 @@
+[package]
+name = "tradedoc"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+homepage = "https://f-a.nz"
+repository = "https://github.com/franzos/tradedoc-rs/"
+description = "Library for generating PDFs like invoices, receipts, packing slips, etc."
+readme = "README.md"
+authors = ["Franz Geffke <m@f-a.nz>"]
+keywords = ["tradedoc", "pdf", "invoice"]
+categories = ["finance"]
+
+[[bin]]
+name = "generate_sample_invoice"
+path = "src/bin/generate_sample_invoice.rs"
+
+[dependencies]
+lopdf = "0.35.0"
+rust_decimal = { version = "1.36.0" }
+chrono = { version = "0.4.31", default-features = false }
