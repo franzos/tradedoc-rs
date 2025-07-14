@@ -4,14 +4,8 @@ use crate::types::{
 use lopdf::content::{Content, Operation};
 use lopdf::dictionary;
 use lopdf::{Document, Object, Stream};
-use rust_decimal::Decimal;
 
 use super::errors::PdfError;
-
-
-fn format_decimal(amount: Decimal, currency: &str) -> String {
-    format!("{} {:.2}", currency, amount)
-}
 
 fn draw_text(x: i32, y: i32, text: &str, font_size: f32) -> Vec<Operation> {
     vec![
@@ -110,12 +104,6 @@ fn draw_address(
     ));
     current_y -= 12;
 
-    let has_contact_info = (address.phone.is_some() && !address.phone.as_ref().unwrap().is_empty())
-        || (address.vat_number.is_some() && !address.vat_number.as_ref().unwrap().is_empty());
-    if has_contact_info {
-        current_y -= 8;
-    }
-
     if let Some(phone) = &address.phone {
         if !phone.is_empty() {
             ops.extend(draw_bold_text(
@@ -128,24 +116,6 @@ fn draw_address(
                 x + 40,
                 current_y,
                 phone,
-                pdf_properties.font_size_body,
-            ));
-            current_y -= 12;
-        }
-    }
-
-    if let Some(vat) = &address.vat_number {
-        if !vat.is_empty() {
-            ops.extend(draw_bold_text(
-                x,
-                current_y,
-                &translation.vat_label,
-                pdf_properties.font_size_label,
-            ));
-            ops.extend(draw_text(
-                x + 35,
-                current_y,
-                vat,
                 pdf_properties.font_size_body,
             ));
             current_y -= 12;
@@ -166,7 +136,7 @@ fn draw_header(
     ops.extend(draw_bold_text(
         50,
         820,
-        &translation.invoice_title,
+        &translation.packing_list_title,
         pdf_properties.font_size_title,
     ));
     draw_address(
@@ -182,7 +152,7 @@ fn draw_header(
     ops.extend(draw_text(
         350,
         800,
-        &format!("{}{}", translation.invoice_number_prefix, order.id),
+        &format!("PACK-{}", order.id),
         pdf_properties.font_size_body,
     ));
     ops.extend(draw_text(
@@ -198,6 +168,12 @@ fn draw_header(
     ops.extend(draw_text(
         350,
         760,
+        &format!("{} {}", translation.shipping_method_label, order.shipping_method),
+        pdf_properties.font_size_body,
+    ));
+    ops.extend(draw_text(
+        350,
+        740,
         &format!("{} {}", translation.order_status_label, order.status),
         pdf_properties.font_size_body,
     ));
@@ -234,14 +210,11 @@ fn draw_addresses(
         &mut ops,
         300,
         640,
-        &translation.bill_to_label,
+        &translation.return_address_label,
         billing_address,
     );
 
-    // Use the higher (smaller number) of the two y positions
     let final_y = ship_y.min(bill_y);
-
-    // Draw line 20 points below the lowest address
     let line_y = final_y - 20;
     ops.extend(vec![
         Operation::new("m", vec![50.into(), line_y.into()]),
@@ -263,7 +236,6 @@ fn truncate_string(s: &str, max_len: usize) -> String {
 fn draw_items_at(
     pdf_properties: &DocumentPropertiesDefault,
     translation: &Dictionary,
-    order: &Order,
     items: &[OrderLineItem],
     start_y: i32,
 ) -> Vec<Operation> {
@@ -271,12 +243,11 @@ fn draw_items_at(
     let mut current_y = start_y;
 
     const PRODUCT_DESC_X: i32 = 50;
-    const PRODUCT_DESC_WIDTH: i32 = 180;
-    const QUANTITY_X: i32 = PRODUCT_DESC_X + PRODUCT_DESC_WIDTH;
-    const UNIT_PRICE_X: i32 = QUANTITY_X + 50;
-    const DISCOUNT_X: i32 = UNIT_PRICE_X + 70;
-    const TAX_X: i32 = DISCOUNT_X + 70;
-    const TOTAL_X: i32 = TAX_X + 70;
+    const PRODUCT_DESC_WIDTH: i32 = 250;
+    const SKU_X: i32 = PRODUCT_DESC_X + PRODUCT_DESC_WIDTH;
+    const SKU_WIDTH: i32 = 100;
+    const QUANTITY_X: i32 = SKU_X + SKU_WIDTH;
+    const WEIGHT_X: i32 = QUANTITY_X + 80;
 
     // Draw table header
     ops.extend(vec![
@@ -305,33 +276,21 @@ fn draw_items_at(
         pdf_properties.font_size_label,
     ));
     ops.extend(draw_bold_text(
+        SKU_X,
+        current_y + 5,
+        &translation.sku_header,
+        pdf_properties.font_size_label,
+    ));
+    ops.extend(draw_bold_text(
         QUANTITY_X,
         current_y + 5,
         &translation.quantity_header,
         pdf_properties.font_size_label,
     ));
     ops.extend(draw_bold_text(
-        UNIT_PRICE_X - 20,
+        WEIGHT_X,
         current_y + 5,
-        &translation.unit_price_header,
-        pdf_properties.font_size_label,
-    ));
-    ops.extend(draw_bold_text(
-        DISCOUNT_X - 20,
-        current_y + 5,
-        &translation.discount_label,
-        pdf_properties.font_size_label,
-    ));
-    ops.extend(draw_bold_text(
-        TAX_X - 20,
-        current_y + 5,
-        &translation.tax_label,
-        pdf_properties.font_size_label,
-    ));
-    ops.extend(draw_bold_text(
-        TOTAL_X - 20,
-        current_y + 5,
-        &translation.total_label,
+        &translation.packed_header,
         pdf_properties.font_size_label,
     ));
 
@@ -339,120 +298,108 @@ fn draw_items_at(
 
     // Draw items
     for item in items {
-        // Format product title and SKU
-        let desc = match &item.sku {
-            Some(sku) if !sku.is_empty() => format!("{} [{}]", item.title, sku),
-            _ => item.title.clone(),
-        };
         ops.extend(draw_text(
             PRODUCT_DESC_X,
             current_y,
-            &truncate_string(&desc, 25),
+            &truncate_string(&item.title, 35),
+            pdf_properties.font_size_body,
+        ));
+
+        let sku_text = item.sku.as_deref().unwrap_or("N/A");
+        ops.extend(draw_text(
+            SKU_X,
+            current_y,
+            &truncate_string(sku_text, 12),
             pdf_properties.font_size_body,
         ));
 
         let quantity_text = item.quantity.to_string();
-        let unit_price_text = format_decimal(item.unit_price, &order.currency);
-        let discount_text = format_decimal(item.discount_total, &order.currency);
-        let tax_text = format_decimal(item.tax_total, &order.currency);
-        let total_text = format_decimal(item.total, &order.currency);
-
         ops.extend(draw_text(
             QUANTITY_X + 35 - quantity_text.len() as i32 * 6,
             current_y,
             &quantity_text,
             pdf_properties.font_size_body,
         ));
-        ops.extend(draw_text(
-            UNIT_PRICE_X + 45 - unit_price_text.len() as i32 * 6,
-            current_y,
-            &unit_price_text,
-            pdf_properties.font_size_body,
-        ));
-        ops.extend(draw_text(
-            DISCOUNT_X + 45 - discount_text.len() as i32 * 6,
-            current_y,
-            &discount_text,
-            pdf_properties.font_size_body,
-        ));
-        ops.extend(draw_text(
-            TAX_X + 45 - tax_text.len() as i32 * 6,
-            current_y,
-            &tax_text,
-            pdf_properties.font_size_body,
-        ));
-        ops.extend(draw_text(
-            TOTAL_X + 45 - total_text.len() as i32 * 6,
-            current_y,
-            &total_text,
-            pdf_properties.font_size_body,
-        ));
 
-        current_y -= 20;
-    }
-
-    current_y -= 20;
-    let totals = vec![
-        (
-            &translation.subtotal_before_discount_label,
-            order.subtotal_before_discount,
-        ),
-        (&translation.discount_label, order.discount_total),
-        (&translation.subtotal_label, order.subtotal),
-        (&translation.shipping_label, order.shipping_total),
-        (&translation.tax_label, order.tax_total),
-        (&translation.total_label, order.total),
-    ];
-
-    for (label, amount) in totals {
-        current_y -= 20;
+        // Add checkbox for "packed" status
         ops.extend(vec![
             Operation::new("q", vec![]),
-            Operation::new("0.95 0.95 0.95 rg", vec![]),
+            Operation::new("0 0 0 RG", vec![]),
             Operation::new(
                 "re",
-                vec![(TAX_X - 70).into(), current_y.into(), 215.into(), 15.into()],
+                vec![WEIGHT_X.into(), current_y.into(), 10.into(), 10.into()],
             ),
-            Operation::new("f", vec![]),
+            Operation::new("S", vec![]),
             Operation::new("Q", vec![]),
         ]);
-        ops.extend(draw_bold_text(
-            TAX_X - 65,
-            current_y + 2,
-            label,
-            pdf_properties.font_size_body,
-        ));
 
-        let amount_text = format_decimal(amount, &order.currency);
-        ops.extend(draw_text(
-            TOTAL_X + 45 - amount_text.len() as i32 * 6,
-            current_y + 2,
-            &amount_text,
-            pdf_properties.font_size_body,
-        ));
+        current_y -= 20;
     }
 
-    if let Some(notes) = &order.notes {
-        current_y -= 40;
+    // Package info section
+    current_y -= 30;
+    ops.extend(draw_bold_text(
+        50,
+        current_y,
+        &translation.package_info_title,
+        pdf_properties.font_size_label,
+    ));
+    current_y -= 20;
+
+    let package_fields = vec![
+        format!("{} ___________", translation.package_weight_label),
+        format!("{} L:_____ W:_____ H:_____", translation.package_dimensions_label),
+        format!("{} ___________", translation.carrier_label),
+        format!("{} ___________", translation.tracking_number_label),
+    ];
+
+    for field in package_fields {
         ops.extend(draw_text(
-            PRODUCT_DESC_X,
+            50,
             current_y,
-            &translation.notes_label,
+            &field,
             pdf_properties.font_size_body,
         ));
-        current_y -= 15;
-        ops.extend(draw_text(
-            PRODUCT_DESC_X,
-            current_y,
-            notes,
-            pdf_properties.font_size_body,
-        ));
+        current_y -= 18;
     }
+
+    // Total items summary
+    current_y -= 20;
+    let total_items: i64 = items.iter().map(|item| item.quantity).sum();
+    ops.extend(draw_bold_text(
+        50,
+        current_y,
+        &format!("{} {}", translation.total_items_label, total_items),
+        pdf_properties.font_size_label,
+    ));
+
+    // Packer signature section
+    current_y -= 40;
+    ops.extend(draw_bold_text(
+        50,
+        current_y,
+        &translation.packer_verification_title,
+        pdf_properties.font_size_label,
+    ));
+    current_y -= 20;
+    ops.extend(draw_text(
+        50,
+        current_y,
+        &format!("{} ___________________ Date: _________ Time: _________", translation.packed_by_label),
+        pdf_properties.font_size_body,
+    ));
+    current_y -= 20;
+    ops.extend(draw_text(
+        50,
+        current_y,
+        &format!("{} ___________________________________", translation.signature_label),
+        pdf_properties.font_size_body,
+    ));
 
     ops
 }
 
-pub fn generate_pdf_invoice(
+pub fn generate_pdf_packing_list(
     order: &Order,
     order_items: &[OrderLineItem],
     warehouse_address: &Address,
@@ -484,7 +431,6 @@ pub fn generate_pdf_invoice(
         },
     });
 
-    // Create content with all operations
     let mut operations = Vec::new();
     operations.extend(draw_header(
         &pdf_properties,
@@ -493,7 +439,6 @@ pub fn generate_pdf_invoice(
         warehouse_address,
     ));
 
-    // Get the y position after drawing addresses
     let (address_ops, line_y) = draw_addresses(
         &pdf_properties,
         &translation,
@@ -502,12 +447,10 @@ pub fn generate_pdf_invoice(
     );
     operations.extend(address_ops);
 
-    // Start items section 40 points below the line
     let items_y = line_y - 40;
     operations.extend(draw_items_at(
         &pdf_properties,
         &translation,
-        order,
         order_items,
         items_y,
     ));
@@ -537,11 +480,8 @@ pub fn generate_pdf_invoice(
     });
 
     doc.trailer.set("Root", catalog_id);
-
-    // Compress the PDF
     doc.compress();
 
-    // Convert to bytes
     let mut buffer = Vec::new();
     doc.save_to(&mut buffer)?;
 

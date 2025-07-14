@@ -8,7 +8,6 @@ use rust_decimal::Decimal;
 
 use super::errors::PdfError;
 
-
 fn format_decimal(amount: Decimal, currency: &str) -> String {
     format!("{} {:.2}", currency, amount)
 }
@@ -166,7 +165,7 @@ fn draw_header(
     ops.extend(draw_bold_text(
         50,
         820,
-        &translation.invoice_title,
+        &translation.proforma_invoice_title,
         pdf_properties.font_size_title,
     ));
     draw_address(
@@ -182,7 +181,7 @@ fn draw_header(
     ops.extend(draw_text(
         350,
         800,
-        &format!("{}{}", translation.invoice_number_prefix, order.id),
+        &format!("PROFORMA-{}", order.id),
         pdf_properties.font_size_body,
     ));
     ops.extend(draw_text(
@@ -199,6 +198,14 @@ fn draw_header(
         350,
         760,
         &format!("{} {}", translation.order_status_label, order.status),
+        pdf_properties.font_size_body,
+    ));
+
+    // Add "PROFORMA INVOICE" notice
+    ops.extend(draw_bold_text(
+        350,
+        740,
+        &translation.proforma_notice,
         pdf_properties.font_size_body,
     ));
 
@@ -238,10 +245,7 @@ fn draw_addresses(
         billing_address,
     );
 
-    // Use the higher (smaller number) of the two y positions
     let final_y = ship_y.min(bill_y);
-
-    // Draw line 20 points below the lowest address
     let line_y = final_y - 20;
     ops.extend(vec![
         Operation::new("m", vec![50.into(), line_y.into()]),
@@ -331,7 +335,7 @@ fn draw_items_at(
     ops.extend(draw_bold_text(
         TOTAL_X - 20,
         current_y + 5,
-        &translation.total_label,
+        &translation.estimated_total_label,
         pdf_properties.font_size_label,
     ));
 
@@ -339,7 +343,6 @@ fn draw_items_at(
 
     // Draw items
     for item in items {
-        // Format product title and SKU
         let desc = match &item.sku {
             Some(sku) if !sku.is_empty() => format!("{} [{}]", item.title, sku),
             _ => item.title.clone(),
@@ -392,6 +395,7 @@ fn draw_items_at(
     }
 
     current_y -= 20;
+    let estimated_total_label = &translation.estimated_total_label;
     let totals = vec![
         (
             &translation.subtotal_before_discount_label,
@@ -401,7 +405,7 @@ fn draw_items_at(
         (&translation.subtotal_label, order.subtotal),
         (&translation.shipping_label, order.shipping_total),
         (&translation.tax_label, order.tax_total),
-        (&translation.total_label, order.total),
+        (&estimated_total_label, order.total),
     ];
 
     for (label, amount) in totals {
@@ -432,17 +436,26 @@ fn draw_items_at(
         ));
     }
 
+    // Add proforma notice at the bottom
+    current_y -= 40;
+    ops.extend(draw_bold_text(
+        50,
+        current_y,
+        &translation.proforma_footer_notice,
+        pdf_properties.font_size_body,
+    ));
+
     if let Some(notes) = &order.notes {
-        current_y -= 40;
+        current_y -= 25;
         ops.extend(draw_text(
-            PRODUCT_DESC_X,
+            50,
             current_y,
             &translation.notes_label,
             pdf_properties.font_size_body,
         ));
         current_y -= 15;
         ops.extend(draw_text(
-            PRODUCT_DESC_X,
+            50,
             current_y,
             notes,
             pdf_properties.font_size_body,
@@ -452,7 +465,7 @@ fn draw_items_at(
     ops
 }
 
-pub fn generate_pdf_invoice(
+pub fn generate_pdf_proforma_invoice(
     order: &Order,
     order_items: &[OrderLineItem],
     warehouse_address: &Address,
@@ -484,7 +497,6 @@ pub fn generate_pdf_invoice(
         },
     });
 
-    // Create content with all operations
     let mut operations = Vec::new();
     operations.extend(draw_header(
         &pdf_properties,
@@ -493,7 +505,6 @@ pub fn generate_pdf_invoice(
         warehouse_address,
     ));
 
-    // Get the y position after drawing addresses
     let (address_ops, line_y) = draw_addresses(
         &pdf_properties,
         &translation,
@@ -502,7 +513,6 @@ pub fn generate_pdf_invoice(
     );
     operations.extend(address_ops);
 
-    // Start items section 40 points below the line
     let items_y = line_y - 40;
     operations.extend(draw_items_at(
         &pdf_properties,
@@ -537,11 +547,8 @@ pub fn generate_pdf_invoice(
     });
 
     doc.trailer.set("Root", catalog_id);
-
-    // Compress the PDF
     doc.compress();
 
-    // Convert to bytes
     let mut buffer = Vec::new();
     doc.save_to(&mut buffer)?;
 

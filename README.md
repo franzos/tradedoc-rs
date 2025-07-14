@@ -5,35 +5,56 @@ The goal of this module is to easily generate PDF's like invoices, receipts, pac
 Supported:
 
 - Invoice
+- Proforma Invoice
+- Packing List
 - Receipt (Planned)
-- Packing List (Planned)
 
 Features:
 
-- Translation
+- Translation*
+  - English
+  - German
+  - French
+  - Thai
+  - Portuguese (Portugal)
+  - Spanish
+  - Italian
+  - Add or overwrite via Dictionary
 - Customization
 
-## Generate sample invoice
+*_Machine translation: If something's off, please provide a PR, or overwrite it with your own dictionary._
+
+## Generate examples
 
 ```bash
-./target/debug/generate_sample_invoice
+cargo run --bin example invoice
+cargo run --bin example proforma-invoice
+cargo run --bin example packing-list
 ```
 
-## Generate PDF's
+With language support:
 
-### Example
+```bash
+cargo run --bin example invoice --language de
+cargo run --bin example proforma-invoice --language fr
+cargo run --bin example packing-list --language en
+```
 
-Refer to `src/bin/generate_sample_invoice.rs` for an example.
+## Usage
+
+### Generate PDF's
+
+Refer to `src/bin/example.rs` for usage examples.
 
 ```rs
-let pdf_data = generate_pdf_invoice(
-    &order,
-    &order_items,
-    &warehouse_address,
-    properties,
-    translation,
-)
-.map_err(|e| format!("Failed to generate PDF: {:?}", e))?;
+// Invoice
+let pdf_data = generate_pdf_invoice(&order, &order_items, &warehouse_address, properties, translation)?;
+
+// Proforma Invoice
+let pdf_data = generate_pdf_proforma_invoice(&order, &order_items, &warehouse_address, properties, translation)?;
+
+// Packing List
+let pdf_data = generate_pdf_packing_list(&order, &order_items, &warehouse_address, properties, translation)?;
 ```
 
 ### Fonts
@@ -51,6 +72,14 @@ fc-list | grep Bold
 Compile and start server:
 
 ```bash
-guix shell rust rust-cargo rust:tools python gcc-toolchain
+guix shell -m manifest.scm
 cargo build
+```
+
+Clippy:
+
+```bash
+docker run --rm -v $(pwd):/app -w /app rust:1.82 sh \
+-c "rustup component add clippy && cargo clippy \
+--all-targets --all-features -- -D warnings"
 ```
