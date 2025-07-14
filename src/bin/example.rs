@@ -6,7 +6,10 @@ use std::io::Write;
 use tradedoc::templates::invoice::generate_pdf_invoice;
 use tradedoc::templates::proforma_invoice::generate_pdf_proforma_invoice;
 use tradedoc::templates::packing_list::generate_pdf_packing_list;
-use tradedoc::types::{Address, Dictionary, DocumentProperties, Order, OrderLineItem};
+use tradedoc::types::{Address, Dictionary, DocumentProperties, Order, OrderLineItem, Language};
+
+// Embed the PNG logo in the binary
+const GOFRANZ_LOGO: &[u8] = include_bytes!("../../assets/gofranz.png");
 
 fn create_sample_address(name: &str) -> Address {
     Address {
@@ -98,7 +101,7 @@ fn print_usage() {
     println!("  packing-list     - Generate a packing list");
     println!();
     println!("Options:");
-    println!("  --language <lang>    - Language (en, de, fr, es, pt, th) [default: en]");
+    println!("  --language <lang>    - Language (en, de, fr, es, pt, th, it) [default: en]");
     println!("  --font <name>        - Normal font name [default: SourceSans3-Regular]");
     println!("  --font-bold <name>   - Bold font name [default: SourceSans3-Bold]");
     println!();
@@ -120,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let document_type = &args[1];
     
     // Parse options
-    let mut language = "en";
+    let mut language = Language::English;
     let mut font_normal = "SourceSans3-Regular".to_string();
     let mut font_bold = "SourceSans3-Bold".to_string();
     
@@ -133,11 +136,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     print_usage();
                     return Ok(());
                 }
-                language = &args[i + 1];
-                if !["en", "de", "fr", "es", "pt", "th"].contains(&language) {
-                    eprintln!("Error: Unsupported language '{}'. Supported: en, de, fr, es, pt, th", language);
-                    print_usage();
-                    return Ok(());
+                match Language::from_str(&args[i + 1]) {
+                    Some(lang) => language = lang,
+                    None => {
+                        eprintln!("Error: Unsupported language '{}'. Supported: en, de, fr, es, pt, th, it", &args[i + 1]);
+                        print_usage();
+                        return Ok(());
+                    }
                 }
                 i += 2;
             }
@@ -178,14 +183,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         font_size_label: Some(10.0),
     };
 
-    let translation = match language {
-        "de" => Dictionary::default().to_de(),
-        "fr" => Dictionary::default().to_fr(),
-        "es" => Dictionary::default().to_es(),
-        "pt" => Dictionary::default().to_pt(),
-        "th" => Dictionary::default().to_th(),
-        _ => Dictionary::default(),
-    };
+    let translation = Dictionary::for_language(language);
 
     let base_filename = match document_type.as_str() {
         "invoice" => "sample_invoice",
@@ -198,10 +196,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let filename = if language == "en" {
+    let filename = if language == Language::English {
         format!("{}.pdf", base_filename)
     } else {
-        format!("{}_{}.pdf", base_filename, language)
+        format!("{}_{}.pdf", base_filename, language.code())
     };
 
     let pdf_data = match document_type.as_str() {
@@ -211,6 +209,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &warehouse_address,
             properties,
             translation,
+            Some(GOFRANZ_LOGO), // Use embedded SVG logo
+            None,               // Use default fonts
+            None,               // Use default fonts
         )?,
         "proforma-invoice" => generate_pdf_proforma_invoice(
             &order,
@@ -218,6 +219,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &warehouse_address,
             properties,
             translation,
+            Some(GOFRANZ_LOGO), // Use embedded SVG logo
+            None,               // Use default fonts
+            None,               // Use default fonts
         )?,
         "packing-list" => generate_pdf_packing_list(
             &order,
@@ -225,6 +229,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &warehouse_address,
             properties,
             translation,
+            Some(GOFRANZ_LOGO), // Use embedded SVG logo
+            None,               // Use default fonts
+            None,               // Use default fonts
         )?,
         _ => unreachable!(),
     };

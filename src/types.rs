@@ -1,5 +1,61 @@
 use rust_decimal::Decimal;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Language {
+    English,
+    German,
+    French,
+    Spanish,
+    Portuguese,
+    Thai,
+    Italian,
+}
+
+impl Language {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "en" | "english" => Some(Language::English),
+            "de" | "german" => Some(Language::German),
+            "fr" | "french" => Some(Language::French),
+            "es" | "spanish" => Some(Language::Spanish),
+            "pt" | "portuguese" => Some(Language::Portuguese),
+            "th" | "thai" => Some(Language::Thai),
+            "it" | "italian" => Some(Language::Italian),
+            _ => None,
+        }
+    }
+
+    pub fn code(&self) -> &'static str {
+        match self {
+            Language::English => "en",
+            Language::German => "de",
+            Language::French => "fr",
+            Language::Spanish => "es",
+            Language::Portuguese => "pt",
+            Language::Thai => "th",
+            Language::Italian => "it",
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Language::English => "English",
+            Language::German => "German",
+            Language::French => "French",
+            Language::Spanish => "Spanish",
+            Language::Portuguese => "Portuguese",
+            Language::Thai => "Thai",
+            Language::Italian => "Italian",
+        }
+    }
+}
+
+impl Default for Language {
+    fn default() -> Self {
+        Language::English
+    }
+}
+
 #[derive(Clone)]
 pub struct Address {
     pub recipient_name: Option<String>,
@@ -90,6 +146,8 @@ impl DocumentProperties {
 
 #[derive(Clone)]
 pub struct Dictionary {
+    pub language: Language,
+
     // Title
     pub invoice_title: String,
 
@@ -152,6 +210,8 @@ pub struct Dictionary {
 impl Default for Dictionary {
     fn default() -> Self {
         Self {
+            language: Language::English,
+
             invoice_title: "INVOICE".to_string(),
             from_label: "From:".to_string(),
             ship_to_label: "Ship To:".to_string(),
@@ -205,6 +265,8 @@ impl Default for Dictionary {
 impl Dictionary {
     pub fn to_de(self) -> Self {
         Self {
+            language: Language::German,
+
             invoice_title: "RECHNUNG".to_string(),
             from_label: "Von:".to_string(),
             ship_to_label: "Versand an:".to_string(),
@@ -256,6 +318,8 @@ impl Dictionary {
 
     pub fn to_fr(self) -> Self {
         Self {
+            language: Language::French,
+
             invoice_title: "FACTURE".to_string(),
             from_label: "De".to_string(),
             ship_to_label: "Expédition à:".to_string(),
@@ -307,6 +371,8 @@ impl Dictionary {
 
     pub fn to_es(self) -> Self {
         Self {
+            language: Language::Spanish,
+
             invoice_title: "FACTURA".to_string(),
             from_label: "De:".to_string(),
             ship_to_label: "Enviar a:".to_string(),
@@ -358,6 +424,8 @@ impl Dictionary {
 
     pub fn to_pt(self) -> Self {
         Self {
+            language: Language::Portuguese,
+
             invoice_title: "FATURA".to_string(),
             from_label: "De:".to_string(),
             ship_to_label: "Enviar para:".to_string(),
@@ -410,12 +478,14 @@ impl Dictionary {
 
     pub fn to_th(self) -> Self {
         Self {
+            language: Language::Thai,
+
             invoice_title: "ใบแจ้งหนี้".to_string(),
             from_label: "จาก:".to_string(),
             ship_to_label: "จัดส่งถึง:".to_string(),
             bill_to_label: "ที่อยู่เรียกเก็บเงิน:".to_string(),
             phone_label: "โทรศัพท์:".to_string(),
-            vat_label: "เลขประจำตัวผู้เสียภาษี:".to_string(),
+            vat_label: "เลขภาษี:".to_string(),
             product_header: "สินค้า".to_string(),
             quantity_header: "จำนวน".to_string(),
             unit_price_header: "ราคาต่อหน่วย".to_string(),
@@ -456,6 +526,72 @@ impl Dictionary {
             estimated_total_label: "ยอดรวมโดยประมาณ".to_string(),
             proforma_notice: "นี่ไม่ใช่บิล - สำหรับวัตถุประสงค์ในการประมาณการเท่านั้น".to_string(),
             proforma_footer_notice: "ประกาศ: ใบแจ้งหนี้เบื้องต้นนี้เป็นเพียงการประมาณการเท่านั้น ไม่ใช่การร้องขอการชำระเงิน".to_string(),
+        }
+    }
+
+    pub fn to_it(self) -> Self {
+        Self {
+            language: Language::Italian,
+            
+            invoice_title: "FATTURA".to_string(),
+            from_label: "Da:".to_string(),
+            ship_to_label: "Spedire a:".to_string(),
+            bill_to_label: "Fatturare a:".to_string(),
+            phone_label: "Telefono:".to_string(),
+            vat_label: "Partita IVA:".to_string(),
+            product_header: "Prodotto".to_string(),
+            quantity_header: "Quantità".to_string(),
+            unit_price_header: "Prezzo unitario".to_string(),
+            discount_header: "Sconto".to_string(),
+            tax_header: "Tasse".to_string(),
+            total_header: "Totale".to_string(),
+            subtotal_before_discount_label: "Subtotale prima dello sconto:".to_string(),
+            discount_label: "Sconto:".to_string(),
+            subtotal_label: "Subtotale:".to_string(),
+            shipping_label: "Spedizione:".to_string(),
+            tax_label: "Tasse:".to_string(),
+            total_label: "Totale:".to_string(),
+            notes_label: "Note:".to_string(),
+            invoice_number_prefix: "Fattura #".to_string(),
+            date_label: "Data:".to_string(),
+            order_status_label: "Stato dell'ordine:".to_string(),
+            
+            // Document types
+            packing_list_title: "BOLLA DI CONSEGNA".to_string(),
+            proforma_invoice_title: "FATTURA PROFORMA".to_string(),
+            
+            // Packing list specific
+            sku_header: "SKU".to_string(),
+            packed_header: "Imballato".to_string(),
+            return_address_label: "Indirizzo di ritorno".to_string(),
+            shipping_method_label: "Metodo di spedizione:".to_string(),
+            package_info_title: "INFORMAZIONI PACCO".to_string(),
+            package_weight_label: "Peso del pacco:".to_string(),
+            package_dimensions_label: "Dimensioni del pacco:".to_string(),
+            carrier_label: "Corriere:".to_string(),
+            tracking_number_label: "Numero di tracciamento:".to_string(),
+            total_items_label: "TOTALE ARTICOLI:".to_string(),
+            packer_verification_title: "VERIFICA IMBALLAGGIO".to_string(),
+            packed_by_label: "Imballato da:".to_string(),
+            signature_label: "Firma:".to_string(),
+            
+            // Proforma invoice specific
+            estimated_total_label: "Totale stimato".to_string(),
+            proforma_notice: "Questo non è una fattura - solo a scopo di stima".to_string(),
+            proforma_footer_notice: "AVVISO: Questa fattura proforma è solo una stima e non una richiesta di pagamento.".to_string(),
+        }
+    }
+
+    pub fn for_language(language: Language) -> Self {
+        let base = Dictionary::default();
+        match language {
+            Language::English => base,
+            Language::German => base.to_de(),
+            Language::French => base.to_fr(),
+            Language::Spanish => base.to_es(),
+            Language::Portuguese => base.to_pt(),
+            Language::Thai => base.to_th(),
+            Language::Italian => base.to_it(),
         }
     }
 }

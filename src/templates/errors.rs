@@ -3,14 +3,14 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum PdfError {
-    LoPdfError(lopdf::Error),
+    PrintPdfError(String),
     IoError(io::Error),
 }
 
 impl fmt::Display for PdfError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PdfError::LoPdfError(e) => write!(f, "PDF generation error: {}", e),
+            PdfError::PrintPdfError(e) => write!(f, "PDF generation error: {}", e),
             PdfError::IoError(e) => write!(f, "I/O error: {}", e),
         }
     }
@@ -19,15 +19,15 @@ impl fmt::Display for PdfError {
 impl std::error::Error for PdfError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            PdfError::LoPdfError(e) => Some(e),
+            PdfError::PrintPdfError(_) => None,
             PdfError::IoError(e) => Some(e),
         }
     }
 }
 
-impl From<lopdf::Error> for PdfError {
-    fn from(err: lopdf::Error) -> Self {
-        PdfError::LoPdfError(err)
+impl From<String> for PdfError {
+    fn from(err: String) -> Self {
+        PdfError::PrintPdfError(err)
     }
 }
 

@@ -7,18 +7,17 @@ Supported:
 - Invoice
 - Proforma Invoice
 - Packing List
-- Receipt (Planned)
 
 Features:
 
 - Translation*
-  - English
-  - German
-  - French
-  - Thai
-  - Portuguese (Portugal)
-  - Spanish
-  - Italian
+  - English (`Language::English`)
+  - German (`Language::German`)
+  - French (`Language::French`)
+  - Spanish (`Language::Spanish`)
+  - Portuguese (`Language::Portuguese`)
+  - Thai (`Language::Thai`)
+  - Italian (`Language::Italian`)
   - Add or overwrite via Dictionary
 - Customization
 
@@ -48,23 +47,74 @@ Refer to `src/bin/example.rs` for usage examples.
 
 ```rs
 // Invoice
-let pdf_data = generate_pdf_invoice(&order, &order_items, &warehouse_address, properties, translation)?;
+let pdf_data = generate_pdf_invoice(
+    &order,
+    &order_items,
+    &warehouse_address,
+    properties,
+    translation,
+    Some(logo_bytes),        // Logo data (PNG/SVG)
+    None,                    // Custom normal font
+    None,                    // Custom bold font
+)?;
 
 // Proforma Invoice
-let pdf_data = generate_pdf_proforma_invoice(&order, &order_items, &warehouse_address, properties, translation)?;
+let pdf_data = generate_pdf_proforma_invoice(
+    &order,
+    &order_items,
+    &warehouse_address,
+    properties,
+    translation,
+    Some(logo_bytes),        // Logo data (PNG/SVG)
+    None,                    // Custom normal font
+    None,                    // Custom bold font
+)?;
 
 // Packing List
-let pdf_data = generate_pdf_packing_list(&order, &order_items, &warehouse_address, properties, translation)?;
+let pdf_data = generate_pdf_packing_list(
+    &order,
+    &order_items,
+    &warehouse_address,
+    properties,
+    translation,
+    Some(logo_bytes),        // Logo data (PNG/SVG)
+    None,                    // Custom normal font
+    None,                    // Custom bold font
+)?;
 ```
+
+_This is a bit verbose, but allows support for more document types in the future._
 
 ### Fonts
 
-You can customize the fonts, but because they are not embedded, they have to be available on the target system, or you'll see a fallback. This is particularly important if you want **bold** text.
+The following fonts are embedded for ease of use:
 
-On Linux, it's easy to find out which fonts are available. To list bold fonts:
+- `NotoSans-Regular`
+- `NotoSans-SemiBold`
+- `NotoSansThai-Regular`
+- `NotoSansThai-SemiBold`
 
-```bash
-fc-list | grep Bold
+You can also provide custom fonts by passing font bytes to the `custom_font_normal` and `custom_font_bold` parameters. Pass `None` to use the default embedded fonts.
+
+### Logo Support
+
+All document types support optional logo placement in the top-right corner:
+
+- **Supported formats**: PNG, SVG
+- **Usage**: Pass logo bytes via the `logo_data` parameter
+- **Position**: Top-right corner of the document
+- **Size**: Automatically scaled to fit (80mm × 24mm)
+- **Embedding**: Use `include_bytes!()` to embed logo in binary
+
+Example:
+```rs
+const LOGO: &[u8] = include_bytes!("assets/logo.png");
+
+let pdf_data = generate_pdf_invoice(
+    // ... other parameters
+    Some(LOGO),  // Logo data
+    // ... remaining parameters
+)?;
 ```
 
 ## Development
