@@ -16,6 +16,6 @@ name = "example"
 path = "src/bin/example.rs"
 
 [dependencies]
-lopdf = "0.35.0"
+lopdf = "0.36.0"
 rust_decimal = { version = "1.36.0" }
 chrono = { version = "0.4.31", default-features = false }
