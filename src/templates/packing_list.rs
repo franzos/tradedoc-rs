@@ -1,18 +1,17 @@
 use crate::types::{
     Address, Dictionary, DocumentProperties, DocumentPropertiesDefault, Order, OrderLineItem,
 };
-use printpdf::{
-    Color, Mm, Op, PdfDocument, PdfPage, PdfSaveOptions, Point, Rgb,
-    graphics::{LinePoint}, PaintMode, Polygon, PolygonRing, WindingOrder,
-};
 use chrono::Datelike;
+use printpdf::{
+    graphics::LinePoint, Color, Mm, Op, PaintMode, PdfDocument, PdfPage, PdfSaveOptions, Point,
+    Polygon, PolygonRing, Rgb, WindingOrder,
+};
 
 use super::errors::PdfError;
 use super::pdf_utils::{
-    FontBundle, draw_text, draw_bold_text, truncate_string,
-    load_fonts, draw_address, draw_addresses, draw_table_header_background, draw_horizontal_line, draw_logo
+    draw_address, draw_addresses, draw_bold_text, draw_horizontal_line, draw_logo,
+    draw_table_header_background, draw_text, load_fonts, truncate_string, FontBundle,
 };
-
 
 fn draw_header(
     doc: &mut PdfDocument,
@@ -61,7 +60,12 @@ fn draw_header(
         &format!(
             "{} {}",
             translation.date_label,
-            format!("{:04}-{:02}-{:02}", order.created_at.year(), order.created_at.month(), order.created_at.day())
+            format!(
+                "{:04}-{:02}-{:02}",
+                order.created_at.year(),
+                order.created_at.month(),
+                order.created_at.day()
+            )
         ),
         pdf_properties.font_size_body,
         fonts,
@@ -69,7 +73,10 @@ fn draw_header(
     ops.extend(draw_text(
         350,
         700,
-        &format!("{} {}", translation.shipping_method_label, order.shipping_method),
+        &format!(
+            "{} {}",
+            translation.shipping_method_label, order.shipping_method
+        ),
         pdf_properties.font_size_body,
         fonts,
     ));
@@ -85,8 +92,6 @@ fn draw_header(
 
     Ok(ops)
 }
-
-
 
 fn draw_items_at(
     pdf_properties: &DocumentPropertiesDefault,
@@ -169,21 +174,50 @@ fn draw_items_at(
 
         // Add checkbox for "packed" status
         ops.push(Op::SetOutlineColor {
-            col: Color::Rgb(Rgb { r: 0.0, g: 0.0, b: 0.0, icc_profile: None }),
+            col: Color::Rgb(Rgb {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                icc_profile: None,
+            }),
         });
         ops.push(Op::DrawPolygon {
             polygon: Polygon {
                 rings: vec![PolygonRing {
                     points: vec![
-                        LinePoint { p: Point::new(Mm(WEIGHT_X as f32 * 0.352778), Mm(current_y as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm((WEIGHT_X + 10) as f32 * 0.352778), Mm(current_y as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm((WEIGHT_X + 10) as f32 * 0.352778), Mm((current_y + 10) as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm(WEIGHT_X as f32 * 0.352778), Mm((current_y + 10) as f32 * 0.352778)), bezier: false },
-                    ]
+                        LinePoint {
+                            p: Point::new(
+                                Mm(WEIGHT_X as f32 * 0.352778),
+                                Mm(current_y as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm((WEIGHT_X + 10) as f32 * 0.352778),
+                                Mm(current_y as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm((WEIGHT_X + 10) as f32 * 0.352778),
+                                Mm((current_y + 10) as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm(WEIGHT_X as f32 * 0.352778),
+                                Mm((current_y + 10) as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                    ],
                 }],
                 mode: PaintMode::Stroke,
                 winding_order: WindingOrder::NonZero,
-            }
+            },
         });
 
         current_y -= 20;
@@ -202,7 +236,10 @@ fn draw_items_at(
 
     let package_fields = vec![
         format!("{} ___________", translation.package_weight_label),
-        format!("{} L:_____ W:_____ H:_____", translation.package_dimensions_label),
+        format!(
+            "{} L:_____ W:_____ H:_____",
+            translation.package_dimensions_label
+        ),
         format!("{} ___________", translation.carrier_label),
         format!("{} ___________", translation.tracking_number_label),
     ];
@@ -242,7 +279,10 @@ fn draw_items_at(
     ops.extend(draw_text(
         50,
         current_y,
-        &format!("{} ___________________ Date: _________ Time: _________", translation.packed_by_label),
+        &format!(
+            "{} ___________________ Date: _________ Time: _________",
+            translation.packed_by_label
+        ),
         pdf_properties.font_size_body,
         fonts,
     ));
@@ -250,7 +290,10 @@ fn draw_items_at(
     ops.extend(draw_text(
         50,
         current_y,
-        &format!("{} ___________________________________", translation.signature_label),
+        &format!(
+            "{} ___________________________________",
+            translation.signature_label
+        ),
         pdf_properties.font_size_body,
         fonts,
     ));
@@ -268,7 +311,12 @@ pub fn generate_pdf_packing_list(
 ) -> Result<Vec<u8>, PdfError> {
     let pdf_properties = properties.input_or_default();
     let mut doc = PdfDocument::new("Packing List");
-    let fonts = load_fonts(&mut doc, Some(translation.language), pdf_properties.font_normal_path.as_deref(), pdf_properties.font_bold_path.as_deref())?;
+    let fonts = load_fonts(
+        &mut doc,
+        Some(translation.language),
+        pdf_properties.font_normal_path.as_deref(),
+        pdf_properties.font_bold_path.as_deref(),
+    )?;
 
     let mut operations = Vec::new();
     operations.extend(draw_header(

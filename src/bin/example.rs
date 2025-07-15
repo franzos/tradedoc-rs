@@ -4,9 +4,9 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use tradedoc::templates::invoice::generate_pdf_invoice;
-use tradedoc::templates::proforma_invoice::generate_pdf_proforma_invoice;
 use tradedoc::templates::packing_list::generate_pdf_packing_list;
-use tradedoc::types::{Address, Dictionary, DocumentProperties, Order, OrderLineItem, Language};
+use tradedoc::templates::proforma_invoice::generate_pdf_proforma_invoice;
+use tradedoc::types::{Address, Dictionary, DocumentProperties, Language, Order, OrderLineItem};
 
 // Embed the PNG logo in the binary
 const GOFRANZ_LOGO: &[u8] = include_bytes!("../../assets/gofranz.png");
@@ -41,8 +41,10 @@ fn create_sample_data() -> (Order, Vec<OrderLineItem>, Address) {
         tax_total: Decimal::new(9000, 2),
         total: Decimal::new(55500, 2),
         notes: Some("Vielen Dank für Ihr Vertrauen!".to_string()),
-        created_at: NaiveDateTime::parse_from_str("2023-01-01 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
-        updated_at: NaiveDateTime::parse_from_str("2023-01-01 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+        created_at: NaiveDateTime::parse_from_str("2023-01-01 12:00:00", "%Y-%m-%d %H:%M:%S")
+            .unwrap(),
+        updated_at: NaiveDateTime::parse_from_str("2023-01-01 12:00:00", "%Y-%m-%d %H:%M:%S")
+            .unwrap(),
     };
 
     let order_items = vec![
@@ -111,17 +113,17 @@ fn print_usage() {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
         print_usage();
         return Ok(());
     }
 
     let document_type = &args[1];
-    
+
     // Parse options
     let mut language = Language::English;
-    
+
     let mut i = 2;
     while i < args.len() {
         match args[i].as_str() {
@@ -152,8 +154,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (order, order_items, warehouse_address) = create_sample_data();
 
     let properties = DocumentProperties {
-        font_normal_path: None,  // Use embedded fonts
-        font_bold_path: None,    // Use embedded fonts
+        font_normal_path: None, // Use embedded fonts
+        font_bold_path: None,   // Use embedded fonts
         background_color: None,
         font_size_title: Some(20.0),
         font_size_body: Some(10.0),

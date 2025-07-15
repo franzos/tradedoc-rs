@@ -181,11 +181,11 @@ pub struct Dictionary {
     pub invoice_number_prefix: String,
     pub date_label: String,
     pub order_status_label: String,
-    
+
     // Document types
     pub packing_list_title: String,
     pub proforma_invoice_title: String,
-    
+
     // Packing list specific
     pub sku_header: String,
     pub packed_header: String,
@@ -200,7 +200,7 @@ pub struct Dictionary {
     pub packer_verification_title: String,
     pub packed_by_label: String,
     pub signature_label: String,
-    
+
     // Proforma invoice specific
     pub estimated_total_label: String,
     pub proforma_notice: String,
@@ -234,11 +234,11 @@ impl Default for Dictionary {
             invoice_number_prefix: "Invoice #".to_string(),
             date_label: "Date:".to_string(),
             order_status_label: "Order Status:".to_string(),
-            
+
             // Document types
             packing_list_title: "PACKING LIST".to_string(),
             proforma_invoice_title: "PROFORMA INVOICE".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "Packed".to_string(),
@@ -253,11 +253,13 @@ impl Default for Dictionary {
             packer_verification_title: "PACKER VERIFICATION".to_string(),
             packed_by_label: "Packed by:".to_string(),
             signature_label: "Signature:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "Estimated Total".to_string(),
             proforma_notice: "This is not a bill - for estimate purposes only".to_string(),
-            proforma_footer_notice: "NOTICE: This proforma invoice is an estimate only and not a request for payment.".to_string(),
+            proforma_footer_notice:
+                "NOTICE: This proforma invoice is an estimate only and not a request for payment."
+                    .to_string(),
         }
     }
 }
@@ -289,11 +291,11 @@ impl Dictionary {
             invoice_number_prefix: "Rechnung #".to_string(),
             date_label: "Datum:".to_string(),
             order_status_label: "Bestellstatus:".to_string(),
-            
+
             // Document types
             packing_list_title: "PACKLISTE".to_string(),
             proforma_invoice_title: "PROFORMA RECHNUNG".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "Verpackt".to_string(),
@@ -308,7 +310,7 @@ impl Dictionary {
             packer_verification_title: "VERPACKUNGSBESTÄTIGUNG".to_string(),
             packed_by_label: "Verpackt von:".to_string(),
             signature_label: "Unterschrift:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "Geschätzte Summe".to_string(),
             proforma_notice: "Dies ist keine Rechnung - nur zur Schätzung".to_string(),
@@ -342,11 +344,11 @@ impl Dictionary {
             invoice_number_prefix: "Facture #".to_string(),
             date_label: "Date:".to_string(),
             order_status_label: "Statut de la commande:".to_string(),
-            
+
             // Document types
             packing_list_title: "BON DE LIVRAISON".to_string(),
             proforma_invoice_title: "FACTURE PROFORMA".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "Emballé".to_string(),
@@ -361,7 +363,7 @@ impl Dictionary {
             packer_verification_title: "VÉRIFICATION EMBALLAGE".to_string(),
             packed_by_label: "Emballé par:".to_string(),
             signature_label: "Signature:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "Total estimé".to_string(),
             proforma_notice: "Ceci n'est pas une facture - à des fins d'estimation uniquement".to_string(),
@@ -395,11 +397,11 @@ impl Dictionary {
             invoice_number_prefix: "Factura #".to_string(),
             date_label: "Fecha:".to_string(),
             order_status_label: "Estado del pedido:".to_string(),
-            
+
             // Document types
             packing_list_title: "ALBARÁN DE ENTREGA".to_string(),
             proforma_invoice_title: "FACTURA PROFORMA".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "Empaquetado".to_string(),
@@ -414,11 +416,13 @@ impl Dictionary {
             packer_verification_title: "VERIFICACIÓN DE EMPAQUETADO".to_string(),
             packed_by_label: "Empaquetado por:".to_string(),
             signature_label: "Firma:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "Total estimado".to_string(),
             proforma_notice: "Esto no es una factura - solo para fines de estimación".to_string(),
-            proforma_footer_notice: "AVISO: Esta factura proforma es solo una estimación y no una solicitud de pago.".to_string(),
+            proforma_footer_notice:
+                "AVISO: Esta factura proforma es solo una estimación y no una solicitud de pago."
+                    .to_string(),
         }
     }
 
@@ -448,11 +452,11 @@ impl Dictionary {
             invoice_number_prefix: "Fatura #".to_string(),
             date_label: "Data:".to_string(),
             order_status_label: "Estado do pedido:".to_string(),
-            
+
             // Document types
             packing_list_title: "GUIA DE REMESSA".to_string(),
             proforma_invoice_title: "FATURA PROFORMA".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "Embalado".to_string(),
@@ -467,14 +471,13 @@ impl Dictionary {
             packer_verification_title: "VERIFICAÇÃO DE EMBALAGEM".to_string(),
             packed_by_label: "Embalado por:".to_string(),
             signature_label: "Assinatura:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "Total estimado".to_string(),
             proforma_notice: "Esta não é uma fatura - apenas para fins de estimativa".to_string(),
             proforma_footer_notice: "AVISO: Esta fatura proforma é apenas uma estimativa e não uma solicitação de pagamento.".to_string(),
         }
     }
-
 
     pub fn to_th(self) -> Self {
         Self {
@@ -502,11 +505,11 @@ impl Dictionary {
             invoice_number_prefix: "ใบแจ้งหนี้ #".to_string(),
             date_label: "วันที่:".to_string(),
             order_status_label: "สถานะคำสั่งซื้อ:".to_string(),
-            
+
             // Document types
             packing_list_title: "ใบแพ็คกิ้ง".to_string(),
             proforma_invoice_title: "ใบแจ้งหนี้เบื้องต้น".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "บรรจุแล้ว".to_string(),
@@ -521,18 +524,19 @@ impl Dictionary {
             packer_verification_title: "การตรวจสอบการแพ็ค".to_string(),
             packed_by_label: "แพ็คโดย:".to_string(),
             signature_label: "ลายเซ็น:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "ยอดรวมโดยประมาณ".to_string(),
             proforma_notice: "นี่ไม่ใช่บิล - สำหรับวัตถุประสงค์ในการประมาณการเท่านั้น".to_string(),
-            proforma_footer_notice: "ประกาศ: ใบแจ้งหนี้เบื้องต้นนี้เป็นเพียงการประมาณการเท่านั้น ไม่ใช่การร้องขอการชำระเงิน".to_string(),
+            proforma_footer_notice:
+                "ประกาศ: ใบแจ้งหนี้เบื้องต้นนี้เป็นเพียงการประมาณการเท่านั้น ไม่ใช่การร้องขอการชำระเงิน".to_string(),
         }
     }
 
     pub fn to_it(self) -> Self {
         Self {
             language: Language::Italian,
-            
+
             invoice_title: "FATTURA".to_string(),
             from_label: "Da:".to_string(),
             ship_to_label: "Spedire a:".to_string(),
@@ -555,11 +559,11 @@ impl Dictionary {
             invoice_number_prefix: "Fattura #".to_string(),
             date_label: "Data:".to_string(),
             order_status_label: "Stato dell'ordine:".to_string(),
-            
+
             // Document types
             packing_list_title: "BOLLA DI CONSEGNA".to_string(),
             proforma_invoice_title: "FATTURA PROFORMA".to_string(),
-            
+
             // Packing list specific
             sku_header: "SKU".to_string(),
             packed_header: "Imballato".to_string(),
@@ -574,11 +578,13 @@ impl Dictionary {
             packer_verification_title: "VERIFICA IMBALLAGGIO".to_string(),
             packed_by_label: "Imballato da:".to_string(),
             signature_label: "Firma:".to_string(),
-            
+
             // Proforma invoice specific
             estimated_total_label: "Totale stimato".to_string(),
             proforma_notice: "Questo non è una fattura - solo a scopo di stima".to_string(),
-            proforma_footer_notice: "AVVISO: Questa fattura proforma è solo una stima e non una richiesta di pagamento.".to_string(),
+            proforma_footer_notice:
+                "AVVISO: Questa fattura proforma è solo una stima e non una richiesta di pagamento."
+                    .to_string(),
         }
     }
 

@@ -1,18 +1,18 @@
 use crate::types::{
     Address, Dictionary, DocumentProperties, DocumentPropertiesDefault, Order, OrderLineItem,
 };
-use printpdf::{
-    Color, Mm, Op, PdfDocument, PdfPage, PdfSaveOptions, Point, Rgb,
-    graphics::{LinePoint}, PaintMode, Polygon, PolygonRing, WindingOrder,
-};
 use chrono::Datelike;
+use printpdf::{
+    graphics::LinePoint, Color, Mm, Op, PaintMode, PdfDocument, PdfPage, PdfSaveOptions, Point,
+    Polygon, PolygonRing, Rgb, WindingOrder,
+};
 
 use super::errors::PdfError;
 use super::pdf_utils::{
-    FontBundle, format_decimal, draw_text, draw_bold_text, truncate_string,
-    load_fonts, draw_address, draw_addresses, draw_table_header_background, draw_horizontal_line, draw_logo
+    draw_address, draw_addresses, draw_bold_text, draw_horizontal_line, draw_logo,
+    draw_table_header_background, draw_text, format_decimal, load_fonts, truncate_string,
+    FontBundle,
 };
-
 
 fn draw_header(
     doc: &mut PdfDocument,
@@ -61,7 +61,12 @@ fn draw_header(
         &format!(
             "{} {}",
             translation.date_label,
-            format!("{:04}-{:02}-{:02}", order.created_at.year(), order.created_at.month(), order.created_at.day())
+            format!(
+                "{:04}-{:02}-{:02}",
+                order.created_at.year(),
+                order.created_at.month(),
+                order.created_at.day()
+            )
         ),
         pdf_properties.font_size_body,
         fonts,
@@ -87,8 +92,6 @@ fn draw_header(
 
     Ok(ops)
 }
-
-
 
 fn draw_items_at(
     pdf_properties: &DocumentPropertiesDefault,
@@ -233,26 +236,60 @@ fn draw_items_at(
     for (label, amount) in totals {
         current_y -= 20;
         ops.push(Op::SetFillColor {
-            col: Color::Rgb(Rgb { r: 0.95, g: 0.95, b: 0.95, icc_profile: None }),
+            col: Color::Rgb(Rgb {
+                r: 0.95,
+                g: 0.95,
+                b: 0.95,
+                icc_profile: None,
+            }),
         });
         ops.push(Op::DrawPolygon {
             polygon: Polygon {
                 rings: vec![PolygonRing {
                     points: vec![
-                        LinePoint { p: Point::new(Mm((TAX_X - 70) as f32 * 0.352778), Mm(current_y as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm((TAX_X - 70 + 215) as f32 * 0.352778), Mm(current_y as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm((TAX_X - 70 + 215) as f32 * 0.352778), Mm((current_y + 15) as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm((TAX_X - 70) as f32 * 0.352778), Mm((current_y + 15) as f32 * 0.352778)), bezier: false },
-                    ]
+                        LinePoint {
+                            p: Point::new(
+                                Mm((TAX_X - 70) as f32 * 0.352778),
+                                Mm(current_y as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm((TAX_X - 70 + 215) as f32 * 0.352778),
+                                Mm(current_y as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm((TAX_X - 70 + 215) as f32 * 0.352778),
+                                Mm((current_y + 15) as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm((TAX_X - 70) as f32 * 0.352778),
+                                Mm((current_y + 15) as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                    ],
                 }],
                 mode: PaintMode::Fill,
                 winding_order: WindingOrder::NonZero,
-            }
+            },
         });
-        
+
         // Reset text color to black for subsequent text
         ops.push(Op::SetFillColor {
-            col: Color::Rgb(Rgb { r: 0.0, g: 0.0, b: 0.0, icc_profile: None }),
+            col: Color::Rgb(Rgb {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                icc_profile: None,
+            }),
         });
         ops.extend(draw_bold_text(
             TAX_X - 65,
@@ -314,7 +351,12 @@ pub fn generate_pdf_proforma_invoice(
 ) -> Result<Vec<u8>, PdfError> {
     let pdf_properties = properties.input_or_default();
     let mut doc = PdfDocument::new("Proforma Invoice");
-    let fonts = load_fonts(&mut doc, Some(translation.language), pdf_properties.font_normal_path.as_deref(), pdf_properties.font_bold_path.as_deref())?;
+    let fonts = load_fonts(
+        &mut doc,
+        Some(translation.language),
+        pdf_properties.font_normal_path.as_deref(),
+        pdf_properties.font_bold_path.as_deref(),
+    )?;
 
     // Create content with all operations
     let mut operations = Vec::new();
@@ -353,7 +395,7 @@ pub fn generate_pdf_proforma_invoice(
 
     // Create the page with all operations
     let page = PdfPage::new(Mm(210.0), Mm(297.0), operations);
-    
+
     // Generate the PDF
     let bytes = doc
         .with_pages(vec![page])

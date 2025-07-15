@@ -282,3 +282,10 @@ docker run --rm -v $(pwd):/app -w /app rust:1.82 sh \
 -c "rustup component add clippy && cargo clippy \
 --all-targets --all-features -- -D warnings"
 ```
+
+Format:
+
+```bash
+docker run --rm -v $(pwd):/app -w /app rust:1.82 sh \
+-c "rustup component add rustfmt && cargo fmt --all" 
+```

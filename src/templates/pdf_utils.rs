@@ -1,13 +1,13 @@
 use crate::types::{Address, Dictionary, DocumentPropertiesDefault, Language};
 use printpdf::{
-    Color, FontId, Mm, Op, ParsedFont, PdfDocument, Point, Pt, Rgb, TextItem,
-    graphics::{Line, LinePoint}, PaintMode, Polygon, PolygonRing, WindingOrder,
-    RawImage, XObjectTransform,
+    graphics::{Line, LinePoint},
+    Color, FontId, Mm, Op, PaintMode, ParsedFont, PdfDocument, Point, Polygon, PolygonRing, Pt,
+    RawImage, Rgb, TextItem, WindingOrder, XObjectTransform,
 };
+use resvg::{tiny_skia, usvg};
 use rust_decimal::Decimal;
 use unicode_script::{Script, UnicodeScript};
 use usvg::TreeParsing;
-use resvg::{tiny_skia, usvg};
 
 use super::errors::PdfError;
 
@@ -61,12 +61,16 @@ fn svg_to_rgba_bytes(svg_data: &[u8], width: u32, height: u32) -> Result<Vec<u8>
     let opt = usvg::Options::default();
     let tree = usvg::Tree::from_data(svg_data, &opt)
         .map_err(|e| PdfError::PrintPdfError(format!("SVG parsing error: {}", e)))?;
-    
+
     let mut pixmap = tiny_skia::Pixmap::new(width, height)
         .ok_or_else(|| PdfError::PrintPdfError("Failed to create pixmap".to_string()))?;
-    
-    resvg::render(&tree, tiny_skia::Transform::identity(), &mut pixmap.as_mut());
-    
+
+    resvg::render(
+        &tree,
+        tiny_skia::Transform::identity(),
+        &mut pixmap.as_mut(),
+    );
+
     Ok(pixmap.data().to_vec())
 }
 
@@ -83,38 +87,51 @@ pub fn draw_logo(
             // Check if it's SVG or PNG/other image format
             if data.starts_with(b"<?xml") || data.starts_with(b"<svg") {
                 // SVG processing
-                let pixel_width = (width_mm * 8.0) as u32; // ~200 DPI 
+                let pixel_width = (width_mm * 8.0) as u32; // ~200 DPI
                 let pixel_height = (height_mm * 8.0) as u32;
-                
+
                 let rgba_data = svg_to_rgba_bytes(data, pixel_width, pixel_height)?;
-                
+
                 // Create image from RGBA data
                 let dynamic_image = image::DynamicImage::ImageRgba8(
-                    image::RgbaImage::from_raw(pixel_width, pixel_height, rgba_data)
-                        .ok_or_else(|| PdfError::PrintPdfError("Failed to create image from RGBA data".to_string()))?
+                    image::RgbaImage::from_raw(pixel_width, pixel_height, rgba_data).ok_or_else(
+                        || {
+                            PdfError::PrintPdfError(
+                                "Failed to create image from RGBA data".to_string(),
+                            )
+                        },
+                    )?,
                 );
-                
+
                 // Convert to raw bytes for RawImage
                 let mut png_bytes = Vec::new();
-                dynamic_image.write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
-                    .map_err(|e| PdfError::PrintPdfError(format!("Failed to encode image to PNG: {}", e)))?;
-                
+                dynamic_image
+                    .write_to(
+                        &mut std::io::Cursor::new(&mut png_bytes),
+                        image::ImageFormat::Png,
+                    )
+                    .map_err(|e| {
+                        PdfError::PrintPdfError(format!("Failed to encode image to PNG: {}", e))
+                    })?;
+
                 // Decode as RawImage and add to document
                 let mut warnings = Vec::new();
-                let raw_image = RawImage::decode_from_bytes(&png_bytes, &mut warnings)
-                    .map_err(|e| PdfError::PrintPdfError(format!("Failed to decode RawImage: {}", e)))?;
-                
+                let raw_image =
+                    RawImage::decode_from_bytes(&png_bytes, &mut warnings).map_err(|e| {
+                        PdfError::PrintPdfError(format!("Failed to decode RawImage: {}", e))
+                    })?;
+
                 let image_xobject_id = doc.add_image(&raw_image);
-                
+
                 // Create transform for positioning and scaling
                 let transform = XObjectTransform {
                     translate_x: Some(Mm(x as f32 * 0.352778).into()),
                     translate_y: Some(Mm(y as f32 * 0.352778).into()),
-                    scale_x: Some(1.0), // Scale factor 
+                    scale_x: Some(1.0), // Scale factor
                     scale_y: Some(1.0), // Scale factor
                     ..Default::default()
                 };
-                
+
                 Ok(vec![Op::UseXobject {
                     id: image_xobject_id,
                     transform,
@@ -122,20 +139,21 @@ pub fn draw_logo(
             } else {
                 // Direct PNG/JPEG/other image format processing
                 let mut warnings = Vec::new();
-                let raw_image = RawImage::decode_from_bytes(data, &mut warnings)
-                    .map_err(|e| PdfError::PrintPdfError(format!("Failed to decode RawImage: {}", e)))?;
-                
+                let raw_image = RawImage::decode_from_bytes(data, &mut warnings).map_err(|e| {
+                    PdfError::PrintPdfError(format!("Failed to decode RawImage: {}", e))
+                })?;
+
                 let image_xobject_id = doc.add_image(&raw_image);
-                
+
                 // Create transform for positioning and scaling
                 let transform = XObjectTransform {
                     translate_x: Some(Mm(x as f32 * 0.352778).into()),
                     translate_y: Some(Mm(y as f32 * 0.352778).into()),
-                    scale_x: Some(1.0), // Scale factor 
+                    scale_x: Some(1.0), // Scale factor
                     scale_y: Some(1.0), // Scale factor
                     ..Default::default()
                 };
-                
+
                 Ok(vec![Op::UseXobject {
                     id: image_xobject_id,
                     transform,
@@ -154,30 +172,31 @@ pub fn draw_text(x: i32, y: i32, text: &str, font_size: f32, fonts: &FontBundle)
     let segments = segment_text_by_script(text);
     let mut ops = vec![
         Op::StartTextSection,
-        Op::SetTextCursor { 
-            pos: Point::new(Mm(x as f32 * 0.352778), Mm(y as f32 * 0.352778))
+        Op::SetTextCursor {
+            pos: Point::new(Mm(x as f32 * 0.352778), Mm(y as f32 * 0.352778)),
         },
     ];
 
     for segment in segments {
         let (font_id, text_to_write) = match segment.script {
-            Script::Thai => {
-                (fonts.normal.clone(), segment.text)
-            },
+            Script::Thai => (fonts.normal.clone(), segment.text),
             Script::Latin | Script::Common | _ => {
                 if fonts.normal_fallback.is_some() {
-                    (fonts.normal_fallback.as_ref().unwrap().clone(), segment.text)
+                    (
+                        fonts.normal_fallback.as_ref().unwrap().clone(),
+                        segment.text,
+                    )
                 } else {
                     (fonts.normal.clone(), segment.text)
                 }
-            },
+            }
         };
 
-        ops.push(Op::SetFontSize { 
+        ops.push(Op::SetFontSize {
             font: font_id.clone(),
-            size: Pt(font_size), 
+            size: Pt(font_size),
         });
-        ops.push(Op::WriteText { 
+        ops.push(Op::WriteText {
             font: font_id,
             items: vec![TextItem::Text(text_to_write)],
         });
@@ -191,30 +210,28 @@ pub fn draw_bold_text(x: i32, y: i32, text: &str, font_size: f32, fonts: &FontBu
     let segments = segment_text_by_script(text);
     let mut ops = vec![
         Op::StartTextSection,
-        Op::SetTextCursor { 
-            pos: Point::new(Mm(x as f32 * 0.352778), Mm(y as f32 * 0.352778))
+        Op::SetTextCursor {
+            pos: Point::new(Mm(x as f32 * 0.352778), Mm(y as f32 * 0.352778)),
         },
     ];
 
     for segment in segments {
         let (font_id, text_to_write) = match segment.script {
-            Script::Thai => {
-                (fonts.bold.clone(), segment.text)
-            },
+            Script::Thai => (fonts.bold.clone(), segment.text),
             Script::Latin | Script::Common | _ => {
                 if fonts.bold_fallback.is_some() {
                     (fonts.bold_fallback.as_ref().unwrap().clone(), segment.text)
                 } else {
                     (fonts.bold.clone(), segment.text)
                 }
-            },
+            }
         };
 
-        ops.push(Op::SetFontSize { 
+        ops.push(Op::SetFontSize {
             font: font_id.clone(),
-            size: Pt(font_size), 
+            size: Pt(font_size),
         });
-        ops.push(Op::WriteText { 
+        ops.push(Op::WriteText {
             font: font_id,
             items: vec![TextItem::Text(text_to_write)],
         });
@@ -233,7 +250,7 @@ pub fn truncate_string(s: &str, max_len: usize) -> String {
 }
 
 pub fn load_fonts(
-    doc: &mut PdfDocument, 
+    doc: &mut PdfDocument,
     language: Option<Language>,
     custom_font_normal_path: Option<&str>,
     custom_font_bold_path: Option<&str>,
@@ -245,25 +262,33 @@ pub fn load_fonts(
             const NOTO_SANS_REGULAR: &[u8] = include_bytes!("../../fonts/NotoSans-Regular.ttf");
             const NOTO_SANS_BOLD: &[u8] = include_bytes!("../../fonts/NotoSans-SemiBold.ttf");
             // Also load Thai-specific fonts for optimal Thai rendering
-            const NOTO_SANS_THAI_REGULAR: &[u8] = include_bytes!("../../fonts/NotoSansThai-Regular.ttf");
-            const NOTO_SANS_THAI_BOLD: &[u8] = include_bytes!("../../fonts/NotoSansThai-SemiBold.ttf");
-            
+            const NOTO_SANS_THAI_REGULAR: &[u8] =
+                include_bytes!("../../fonts/NotoSansThai-Regular.ttf");
+            const NOTO_SANS_THAI_BOLD: &[u8] =
+                include_bytes!("../../fonts/NotoSansThai-SemiBold.ttf");
+
             // Use Thai fonts as primary for proper Thai character rendering
-            let font_thai_normal = ParsedFont::from_bytes(NOTO_SANS_THAI_REGULAR, 0, &mut Vec::new())
-                .ok_or(PdfError::PrintPdfError("Failed to load Thai normal font".to_string()))?;
+            let font_thai_normal =
+                ParsedFont::from_bytes(NOTO_SANS_THAI_REGULAR, 0, &mut Vec::new()).ok_or(
+                    PdfError::PrintPdfError("Failed to load Thai normal font".to_string()),
+                )?;
             let font_thai_bold = ParsedFont::from_bytes(NOTO_SANS_THAI_BOLD, 0, &mut Vec::new())
-                .ok_or(PdfError::PrintPdfError("Failed to load Thai bold font".to_string()))?;
+                .ok_or(PdfError::PrintPdfError(
+                    "Failed to load Thai bold font".to_string(),
+                ))?;
             // Regular NotoSans as fallback for English/Latin characters
-            let font_normal = ParsedFont::from_bytes(NOTO_SANS_REGULAR, 0, &mut Vec::new())
-                .ok_or(PdfError::PrintPdfError("Failed to load normal font".to_string()))?;
-            let font_bold = ParsedFont::from_bytes(NOTO_SANS_BOLD, 0, &mut Vec::new())
-                .ok_or(PdfError::PrintPdfError("Failed to load bold font".to_string()))?;
-            
+            let font_normal = ParsedFont::from_bytes(NOTO_SANS_REGULAR, 0, &mut Vec::new()).ok_or(
+                PdfError::PrintPdfError("Failed to load normal font".to_string()),
+            )?;
+            let font_bold = ParsedFont::from_bytes(NOTO_SANS_BOLD, 0, &mut Vec::new()).ok_or(
+                PdfError::PrintPdfError("Failed to load bold font".to_string()),
+            )?;
+
             let font_thai_normal_id = doc.add_font(&font_thai_normal);
             let font_thai_bold_id = doc.add_font(&font_thai_bold);
             let font_normal_id = doc.add_font(&font_normal);
             let font_bold_id = doc.add_font(&font_bold);
-            
+
             Ok(FontBundle {
                 normal: font_thai_normal_id,
                 bold: font_thai_bold_id,
@@ -275,28 +300,28 @@ pub fn load_fonts(
             // Default fonts for all other languages (en, de, fr, es, pt, it)
             // Use custom fonts if provided, otherwise use built-in NotoSans
             let normal_font_data = match custom_font_normal_path {
-                Some(path) => {
-                    std::fs::read(path)
-                        .map_err(|e| PdfError::PrintPdfError(format!("Failed to read font file {}: {}", path, e)))?
-                },
-                None => include_bytes!("../../fonts/NotoSans-Regular.ttf").to_vec()
+                Some(path) => std::fs::read(path).map_err(|e| {
+                    PdfError::PrintPdfError(format!("Failed to read font file {}: {}", path, e))
+                })?,
+                None => include_bytes!("../../fonts/NotoSans-Regular.ttf").to_vec(),
             };
             let bold_font_data = match custom_font_bold_path {
-                Some(path) => {
-                    std::fs::read(path)
-                        .map_err(|e| PdfError::PrintPdfError(format!("Failed to read font file {}: {}", path, e)))?
-                },
-                None => include_bytes!("../../fonts/NotoSans-SemiBold.ttf").to_vec()
+                Some(path) => std::fs::read(path).map_err(|e| {
+                    PdfError::PrintPdfError(format!("Failed to read font file {}: {}", path, e))
+                })?,
+                None => include_bytes!("../../fonts/NotoSans-SemiBold.ttf").to_vec(),
             };
-            
-            let font_normal = ParsedFont::from_bytes(&normal_font_data, 0, &mut Vec::new())
-                .ok_or(PdfError::PrintPdfError("Failed to load normal font".to_string()))?;
-            let font_bold = ParsedFont::from_bytes(&bold_font_data, 0, &mut Vec::new())
-                .ok_or(PdfError::PrintPdfError("Failed to load bold font".to_string()))?;
-            
+
+            let font_normal = ParsedFont::from_bytes(&normal_font_data, 0, &mut Vec::new()).ok_or(
+                PdfError::PrintPdfError("Failed to load normal font".to_string()),
+            )?;
+            let font_bold = ParsedFont::from_bytes(&bold_font_data, 0, &mut Vec::new()).ok_or(
+                PdfError::PrintPdfError("Failed to load bold font".to_string()),
+            )?;
+
             let font_normal_id = doc.add_font(&font_normal);
             let font_bold_id = doc.add_font(&font_bold);
-            
+
             Ok(FontBundle {
                 normal: font_normal_id,
                 bold: font_bold_id,
@@ -476,17 +501,17 @@ pub fn draw_addresses(
     ops.push(Op::DrawLine {
         line: Line {
             points: vec![
-                LinePoint { 
-                    p: Point::new(Mm(50.0 * 0.352778), Mm(line_y as f32 * 0.352778)), 
-                    bezier: false 
+                LinePoint {
+                    p: Point::new(Mm(50.0 * 0.352778), Mm(line_y as f32 * 0.352778)),
+                    bezier: false,
                 },
-                LinePoint { 
-                    p: Point::new(Mm(545.0 * 0.352778), Mm(line_y as f32 * 0.352778)), 
-                    bezier: false 
-                }
+                LinePoint {
+                    p: Point::new(Mm(545.0 * 0.352778), Mm(line_y as f32 * 0.352778)),
+                    bezier: false,
+                },
             ],
-            is_closed: false
-        }
+            is_closed: false,
+        },
     });
 
     (ops, line_y)
@@ -509,18 +534,41 @@ pub fn draw_table_header_background(
             polygon: Polygon {
                 rings: vec![PolygonRing {
                     points: vec![
-                        LinePoint { p: Point::new(Mm(50.0 * 0.352778), Mm(current_y as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm(545.0 * 0.352778), Mm(current_y as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm(545.0 * 0.352778), Mm((current_y + 20) as f32 * 0.352778)), bezier: false },
-                        LinePoint { p: Point::new(Mm(50.0 * 0.352778), Mm((current_y + 20) as f32 * 0.352778)), bezier: false },
-                    ]
+                        LinePoint {
+                            p: Point::new(Mm(50.0 * 0.352778), Mm(current_y as f32 * 0.352778)),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(Mm(545.0 * 0.352778), Mm(current_y as f32 * 0.352778)),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm(545.0 * 0.352778),
+                                Mm((current_y + 20) as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                        LinePoint {
+                            p: Point::new(
+                                Mm(50.0 * 0.352778),
+                                Mm((current_y + 20) as f32 * 0.352778),
+                            ),
+                            bezier: false,
+                        },
+                    ],
                 }],
                 mode: PaintMode::Fill,
                 winding_order: WindingOrder::NonZero,
-            }
+            },
         },
         Op::SetFillColor {
-            col: Color::Rgb(Rgb { r: 0.0, g: 0.0, b: 0.0, icc_profile: None }),
+            col: Color::Rgb(Rgb {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                icc_profile: None,
+            }),
         },
     ]
 }
@@ -529,16 +577,16 @@ pub fn draw_horizontal_line(y: i32) -> Op {
     Op::DrawLine {
         line: Line {
             points: vec![
-                LinePoint { 
-                    p: Point::new(Mm(50.0 * 0.352778), Mm(y as f32 * 0.352778)), 
-                    bezier: false 
+                LinePoint {
+                    p: Point::new(Mm(50.0 * 0.352778), Mm(y as f32 * 0.352778)),
+                    bezier: false,
                 },
-                LinePoint { 
-                    p: Point::new(Mm(545.0 * 0.352778), Mm(y as f32 * 0.352778)), 
-                    bezier: false 
-                }
+                LinePoint {
+                    p: Point::new(Mm(545.0 * 0.352778), Mm(y as f32 * 0.352778)),
+                    bezier: false,
+                },
             ],
-            is_closed: false
-        }
+            is_closed: false,
+        },
     }
 }
