@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [0.3.0]
+
+### Changed
+
+- Moved font params from function input to `DocumentProperties`
+
 ## [0.2.0]
 
 ### Added

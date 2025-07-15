@@ -107,10 +107,10 @@ pub struct OrderLineItem {
 
 #[derive(Clone)]
 pub struct DocumentProperties {
-    // default Helvetica
-    pub font_normal: Option<String>,
-    // default Helvetica-Bold
-    pub font_bold: Option<String>,
+    // Path to custom normal font file (None = use embedded NotoSans)
+    pub font_normal_path: Option<String>,
+    // Path to custom bold font file (None = use embedded NotoSans-Bold)
+    pub font_bold_path: Option<String>,
     // "0.9 0.9 0.9" (light gray)
     pub background_color: Option<(f32, f32, f32)>,
     pub font_size_title: Option<f32>,
@@ -120,10 +120,10 @@ pub struct DocumentProperties {
 
 #[derive(Clone)]
 pub struct DocumentPropertiesDefault {
-    // default Helvetica
-    pub font_normal: String,
-    // default Helvetica-Bold
-    pub font_bold: String,
+    // Path to normal font file (None = use embedded)
+    pub font_normal_path: Option<String>,
+    // Path to bold font file (None = use embedded)
+    pub font_bold_path: Option<String>,
     // "0.9 0.9 0.9" (light gray)
     pub background_color: (f32, f32, f32),
     pub font_size_title: f32,
@@ -134,8 +134,8 @@ pub struct DocumentPropertiesDefault {
 impl DocumentProperties {
     pub fn input_or_default(self) -> DocumentPropertiesDefault {
         DocumentPropertiesDefault {
-            font_normal: self.font_normal.unwrap_or("Helvetica".to_string()),
-            font_bold: self.font_bold.unwrap_or("Helvetica-Bold".to_string()),
+            font_normal_path: self.font_normal_path,
+            font_bold_path: self.font_bold_path,
             background_color: self.background_color.unwrap_or((0.9, 0.9, 0.9)),
             font_size_title: self.font_size_title.unwrap_or(20.0),
             font_size_body: self.font_size_body.unwrap_or(10.0),

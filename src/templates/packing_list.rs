@@ -265,12 +265,10 @@ pub fn generate_pdf_packing_list(
     properties: DocumentProperties,
     translation: Dictionary,
     logo_data: Option<&[u8]>,
-    custom_font_normal: Option<&[u8]>,
-    custom_font_bold: Option<&[u8]>,
 ) -> Result<Vec<u8>, PdfError> {
     let pdf_properties = properties.input_or_default();
     let mut doc = PdfDocument::new("Packing List");
-    let fonts = load_fonts(&mut doc, Some(translation.language), custom_font_normal, custom_font_bold)?;
+    let fonts = load_fonts(&mut doc, Some(translation.language), pdf_properties.font_normal_path.as_deref(), pdf_properties.font_bold_path.as_deref())?;
 
     let mut operations = Vec::new();
     operations.extend(draw_header(

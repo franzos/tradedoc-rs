@@ -235,8 +235,8 @@ pub fn truncate_string(s: &str, max_len: usize) -> String {
 pub fn load_fonts(
     doc: &mut PdfDocument, 
     language: Option<Language>,
-    custom_font_normal: Option<&[u8]>,
-    custom_font_bold: Option<&[u8]>,
+    custom_font_normal_path: Option<&str>,
+    custom_font_bold_path: Option<&str>,
 ) -> Result<FontBundle, PdfError> {
     match language {
         Some(Language::Thai) => {
@@ -274,16 +274,24 @@ pub fn load_fonts(
         _ => {
             // Default fonts for all other languages (en, de, fr, es, pt, it)
             // Use custom fonts if provided, otherwise use built-in NotoSans
-            let normal_font_data = custom_font_normal.unwrap_or_else(|| {
-                include_bytes!("../../fonts/NotoSans-Regular.ttf")
-            });
-            let bold_font_data = custom_font_bold.unwrap_or_else(|| {
-                include_bytes!("../../fonts/NotoSans-SemiBold.ttf")
-            });
+            let normal_font_data = match custom_font_normal_path {
+                Some(path) => {
+                    std::fs::read(path)
+                        .map_err(|e| PdfError::PrintPdfError(format!("Failed to read font file {}: {}", path, e)))?
+                },
+                None => include_bytes!("../../fonts/NotoSans-Regular.ttf").to_vec()
+            };
+            let bold_font_data = match custom_font_bold_path {
+                Some(path) => {
+                    std::fs::read(path)
+                        .map_err(|e| PdfError::PrintPdfError(format!("Failed to read font file {}: {}", path, e)))?
+                },
+                None => include_bytes!("../../fonts/NotoSans-SemiBold.ttf").to_vec()
+            };
             
-            let font_normal = ParsedFont::from_bytes(normal_font_data, 0, &mut Vec::new())
+            let font_normal = ParsedFont::from_bytes(&normal_font_data, 0, &mut Vec::new())
                 .ok_or(PdfError::PrintPdfError("Failed to load normal font".to_string()))?;
-            let font_bold = ParsedFont::from_bytes(bold_font_data, 0, &mut Vec::new())
+            let font_bold = ParsedFont::from_bytes(&bold_font_data, 0, &mut Vec::new())
                 .ok_or(PdfError::PrintPdfError("Failed to load bold font".to_string()))?;
             
             let font_normal_id = doc.add_font(&font_normal);
